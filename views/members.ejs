@@ -1,0 +1,23 @@
+<%- include('templates/header') %>
+<header class="d-flex justify-content-center py-3">
+    <div class="container text-center">
+        <h1>Hello, <%= firstname %></h1>
+        <div class="row">
+          <div class="col-sm">
+            <img class="img-fluid" src="/pet0.jpg" alt="A cute pet photo.">
+          </div>
+          <div class="col-sm">
+            <img class="img-fluid" src="/pet1.jpg" alt="A cute pet photo.">
+          </div>
+          <div class="col-sm">
+            <img class="img-fluid" src="/pet2.jpg" alt="A cute pet photo.">
+          </div>
+        </div>
+      </div>
+</header>
+<header class="d-flex justify-content-center py-3">
+    <form action="/logout" method="get">
+        <button class="btn btn-primary rounded-pill px-3" type="submit">Log Out</button>
+    </form>
+</header>
+<%- include('templates/footer') %>
