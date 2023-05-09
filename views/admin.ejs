@@ -1,32 +1,12 @@
 <%- include('templates/header') %>
-<header class="d-flex justify-content-center py-3">
-    <h1>All Users</h1>
-</header>
-<header class="d-flex justify-content-center py-3">
-    <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Email</th>
-            <th scope="col">User Type</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-            <% for (var i = 0; i < users.length; i++){ %>
-                <tr>
-                    <%- include('templates/user', {user: users[i]}) %>
-                    <td>
-                        <form method="post">
-                            <button type="submit" class="btn btn-warning" formaction="/changetype" name="target" value="A<%= users[i].email %>">Promote</button>
-                            <button type="submit" class="btn btn-info" formaction="/changetype" name="target" value="U<%= users[i].email %>">Demote</button>
-                        </form>
-                    </td>
-                </tr>
-          <% } %>
-        </tbody>
-      </table>
-    <ul class="list-group">
-        
+<br>
+<div>
+    <h1>Users:</h1>
+    <ul class="list-group list-group-flush">
+        <% let i=0; %>
+        <% for(i=0; i < users.length; i++) { %>
+        <%- include('templates/user', {user: users[i]})  %>
+        <% } %>
     </ul>
-</header>
+</div>
 <%- include('templates/footer') %>

@@ -1,0 +1,30 @@
+<%- include('templates/header') %>
+<!-- create user
+<form action='/submitUser' method='post'>
+<input name='username' type='text' placeholder='username'>
+<input name='email' type='text' placeholder='email'>
+<input name='password' type='password' placeholder='password'>
+<button>Submit</button>
+</form> -->
+<br><br>
+<div class="col-md-10 mx-auto col-lg-5">
+    <form class="p-4 p-md-5 border rounded-3 bg-light" action='/submitUser' method='post'>
+      <h1 class="display-4 fw-bold lh-1 mb-3">Create User</h1>
+      <br><br>
+      <div class="form-floating mb-3">
+        <input name='username' type="text" class="form-control" id="floatingInput" placeholder="John">
+        <label for="floatingInput">Username</label>
+      </div>
+      <div class="form-floating mb-3">
+        <input name='email' type="email" class="form-control" id="floatingInput" placeholder="name@example.com">
+        <label for="floatingInput">Email address</label>
+      </div>
+      <div class="form-floating mb-3">
+        <input name="password" type="password" class="form-control" id="floatingPassword" placeholder="Password">
+        <label for="floatingPassword">Password</label>
+      </div>
+      <button class="w-100 btn btn-lg btn-primary" type="submit">Submit</button>
+      <hr class="my-4">
+    </form>
+  </div>
+<%- include('templates/footer') %>

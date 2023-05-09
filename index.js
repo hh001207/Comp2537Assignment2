@@ -1,185 +1,223 @@
-function sessionAuthentication(req, res, next){
-    if (req.session.authenticated){
+require("./utils.js");
+
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const bcrypt = require('bcrypt');
+const saltRounds = 12;
+
+const app = express();
+
+const Joi = require("joi");
+
+const urlencoded = require('url');
+
+const port = process.env.PORT || 3000;
+
+// expires in 1 hour
+const expireTime = 1000 * 60 * 60;
+
+const mongodb_host = process.env.MONGODB_HOST;
+const mongodb_user = process.env.MONGODB_USER;
+const mongodb_password = process.env.MONGODB_PASSWORD;
+const mongodb_database = process.env.MONGODB_DATABASE;
+const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
+
+const node_session_secret = process.env.NODE_SESSION_SECRET;
+
+var { database } = include('databaseConnection');
+
+const userCollection = database.db(mongodb_database).collection('users');
+
+app.use(express.urlencoded({ extended: false }));
+
+var mongoStore = MongoStore.create({
+    mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/sessions`,
+    crypto: {
+        secret: mongodb_session_secret
+    }
+})
+
+app.use(session({
+    secret: node_session_secret,
+    store: mongoStore, //default is memory store 
+    saveUninitialized: false,
+    resave: true
+}
+));
+
+const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "Members", path: "/members" },
+    { label: "Admin", path: "/admin" },
+    { label: "404", path: "/doesnotexist" }
+];
+
+function isValidSession(req) {
+    if (req.session.authenticated) {
+        return true;
+    }
+    return false;
+}
+
+function sessionValidation(req, res, next) {
+    if (isValidSession(req)) {
         next();
-    } else {
+    }
+    else {
         res.redirect('/login');
     }
 }
 
-function adminAuthorization(req, res, next){
-    if (req.session.usertype == "admin"){
-        next();
-    } else {
+
+function isAdmin(req) {
+    if (req.session.user_type == 'admin') {
+        return true;
+    }
+    return false;
+}
+
+function adminAuthorization(req, res, next) {
+    if (!isAdmin(req)) {
         res.status(403);
-        res.render('403', {navbar: navbar});
+        res.render("error.ejs", { error: "Not Authorized", tryAgainLink: "/" , navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+        return;
+    }
+    else {
+        next();
     }
 }
-
-const express = require('express');
-const session = require('express-session');
-const mongo = require('connect-mongo');
-const bcrypt = require('bcrypt');
-require('dotenv').config();
-const joi = require('joi');
-const url = require('url');
-
-var navbar = [];
-
-const node_session_secret = process.env.SESSION_SECRET;
-const mongodb_user = process.env.MONGODB_USER;
-const mongodb_PW = process.env.MONGODB_PW;
-const mongodb_host = process.env.MONGODB_HOST;
-const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
-const mongodb_database = process.env.MONGODB_DATABASE;
-const sessionExpiryTime = 60 * 60 * 1000; // milliseconds
-const salt = 10;
-
-const app = express();
-const port = process.env.PORT || 8000;
-app.listen(port, () => {
-    console.log("Now listening on port " + port + ".");
-});
-
-var atlasURL = `mongodb+srv://${mongodb_user}:${mongodb_PW}@${mongodb_host}/`
-var MongoDBStore = mongo.create({
-    mongoUrl: atlasURL + 'sessions',
-    crypto: {secret: mongodb_session_secret}
-});
-const MongoClient = require('mongodb').MongoClient;
-const database = new MongoClient(atlasURL + '?retryWrites=true', {useNewUrlParser: true, useUnifiedTopology: true});
-const users = database.db(mongodb_database).collection('users_with_types');
-
-app.use(session({
-    secret: node_session_secret,
-    store: MongoDBStore,
-    saveUninitialized: false,
-    resave: true
-}));
-
-function populateNavbar(req, res, next) {
-    navbar = [{name: 'Home', link: '/'}];
-    if (req.session.authenticated){
-        navbar.push({name: 'Members', link: '/members'}, 
-                    {name: 'Log Out', link:'/logout'});
-                    console.log(req.session.usertype);
-        if (req.session.usertype == 'admin'){
-            navbar.push({name: 'Admin', link: '/admin'});
-        }
-    } else {
-        navbar.push({name: 'Log In', link: '/login'}, 
-                    {name: 'Sign Up', link:'/signup'});
-    }
-    next();
-}
-
-app.use("/", populateNavbar);
-
-app.use(express.urlencoded({extended:false}));
-app.use(express.static(__dirname + '/public'));
-
-app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
-    res.render('index', {navbar: navbar});
+    if (req.session.authenticated) {
+        res.render('indexLoggedIn.ejs', { name: req.session.username, navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+    } else {
+        res.render('index.ejs', { navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+    }
 });
 
+app.get('/members', (req, res) => {
+    if (!req.session.authenticated) {
+        res.redirect('/');
+    } else {
+        const randomImage = Math.floor(Math.random() * 3) + 1;
+        res.render('members.ejs', { name: req.session.username, image: randomImage, navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+    }
+});
+
+app.get('/createUser', (req, res) => {
+    res.render("createUser.ejs", { navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+});
+
+
 app.get('/login', (req, res) => {
-    res.render('login', {navbar: navbar});
-})
+    res.render("login.ejs", { navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+});
 
-app.get('/signup', (req, res) => {
-    res.render('signup', {navbar: navbar});
-})
+app.post('/submitUser', async (req, res) => {
+    var username = req.body.username;
+    var email = req.body.email;
+    var password = req.body.password;
 
-app.get('/members', sessionAuthentication, (req, res) => {
-    res.render('members', {firstname: req.session.firstname, navbar: navbar});
-})
+    const schema = Joi.object(
+        {
+            username: Joi.string().alphanum().max(20).required(),
+            email: Joi.string().email().required(),
+            password: Joi.string().max(20).required()
+        });
+
+    const validationResult = schema.validate({ username, email, password });
+    if (validationResult.error != null) {
+        const errorMessage = validationResult.error.details[0].message;
+        res.render("error.ejs", { error: errorMessage, tryAgainLink: "/createUser" , navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+        return;
+    }
+
+    var hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    await userCollection.insertOne({ username: username, email, password: hashedPassword, user_type: "user" });
+    console.log("Inserted user");
+
+    res.redirect('/members');
+});
+
+app.post('/loggingin', async (req, res) => {
+    var email = req.body.email;
+    var password = req.body.password;
+
+    const schema = Joi.string().max(20).required();
+    const validationResult = schema.validate(email);
+    if (validationResult.error != null) {
+        const errorMessage = validationResult.error.details[0].message;
+        console.log(validationResult.error);
+        res.render("error.ejs", { error: errorMessage, tryAgainLink: "/login",  navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+        return;
+    }
+
+    const result = await userCollection.findOne({ email });
+
+    console.log(result);
+    if (!result) {
+        console.log("user not found");
+        res.render("error.ejs", { error: "invalid email", tryAgainLink: "/login" , navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+        return;
+    }
+    if (await bcrypt.compare(password, result.password)) {
+        console.log("correct password");
+        req.session.authenticated = true;
+        req.session.username = result.username;
+        req.session.user_type = result.user_type;
+        req.session.cookie.maxAge = expireTime;
+
+        res.redirect('/members');
+        return;
+    }
+    else {
+        console.log("incorrect password");
+        res.render("error.ejs", { error: "incorrect password", tryAgainLink: "/login" , navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+        return;
+    }
+});
+
+app.use('/loggedin', sessionValidation);
+app.get('/loggedin', (req, res) => {
+    if (!req.session.authenticated) {
+        res.redirect('/login');
+    }
+    res.render("loggedin", { navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+});
+
+app.get('/admin', sessionValidation, adminAuthorization, async (req, res) => {
+    const result = await userCollection.find().toArray();
+
+    res.render("admin.ejs", { users: result, navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
+});
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
-})
-
-app.get('/admin', sessionAuthentication, adminAuthorization, async (req, res) => {
-    var userList = await users.find().project({email: 1, firstname: 1, type: 1, _id: 1}).toArray();
-    res.render('admin', {users: userList, navbar: navbar});
-    // TODO allow promotion and demotion
-})
-
-app.get('*', (req, res) => {
-    res.status(404);
-    res.render('404', {navbar: navbar});
 });
 
-app.post('/log_user_in', async (req, res) => {
-    var email = req.body.email;
-    var password = req.body.password;
-    var schema = joi.object({
-        email: joi.string().max(20).required(),
-        password: joi.string().max(20).required(),
-    });
-    var validCredentials = schema.validate({email, password});
+app.get('/updateUser/:type/:username', sessionValidation, adminAuthorization, async (req, res) => {
+    const username = req.params.username;
+    const type = req.params.type;
 
-    if (validCredentials.error != null){
-        res.render('tryagain', {error: validCredentials.error.toString().substring(17), link: '/login', navbar: navbar});
-    } else {
-        var user = await users.find({email: email})
-            .project({email: 1, password: 1, firstname: 1, type: 1, _id: 1})
-            .toArray();
-        if (user.length != 1){
-            res.render('tryagain', {error: 'Account does not exist for this email.', link: '/login', navbar: navbar});
-        } else if (await bcrypt.compare(password, user[0].password)){
-            req.session.authenticated = true;
-            req.session.firstname = user[0].firstname;
-            req.session.email = email;
-            req.session.cookie.maxAge = sessionExpiryTime;
-            req.session.usertype = user[0].type;
-            res.redirect('/members');
-        } else {
-            res.render('tryagain', {error: 'Incorrect password', link: '/login', navbar: navbar});
-        }
-    }
-})
+    const result = await userCollection.findOne({ username });
+    await userCollection.updateOne({ username }, { $set: { user_type: type } });
 
-app.post('/register_user', async (req, res) => {
-    var firstname = req.body.firstname;
-    var email = req.body.email;
-    var password = req.body.password;
-
-    var schema = joi.object({
-        firstname: joi.string().alphanum().max(20).required(),
-        email: joi.string().max(20).required(),
-        password: joi.string().max(20).required(),
-    });
-    var validSubmission = schema.validate({firstname, email, password});
-
-    if (validSubmission.error != null){
-        res.render('tryagain', {error: validCredentials.error.toString().substring(17), link: '/signup', navbar: navbar});
-    } else {
-        var encrypted_password = await bcrypt.hash(password, salt); 
-        await users.insertOne({
-            email: email,
-            password: encrypted_password,
-            firstname: firstname,
-            type: 'user'
-        })
-        req.session.authenticated = true;
-        req.session.firstname = firstname;
-        req.session.email = email;
-        req.session.cookie.maxAge = sessionExpiryTime;
-        req.session.usertype = 'user';
-        res.redirect('/members');
-    }
-})
-
-app.post('/changetype', adminAuthorization, async (req, res) => {
-    var input = req.body.target;
-    var typeID = input.charAt(0);
-    var newType = typeID == 'U' ? 'user' : 'admin';
-    var subjectEmail = input.substring(1);
-    await users.findOneAndUpdate({email: subjectEmail}, {$set: {type: newType}});
     res.redirect('/admin');
+});
+
+
+app.use(express.static(__dirname + "/public"));
+
+app.get("*", (req, res) => {
+    res.status(404);
+    res.render("404.ejs", { navLinks: navLinks, currentURL: urlencoded.parse(req.url).pathname });
 })
 
+app.listen(port, () => {
+    console.log("Node application listening on port " + port);
+});
 
-    

@@ -1,23 +1,13 @@
 <%- include('templates/header') %>
-<header class="d-flex justify-content-center py-3">
-    <div class="container text-center">
-        <h1>Hello, <%= firstname %></h1>
-        <div class="row">
-          <div class="col-sm">
-            <img class="img-fluid" src="/pet0.jpg" alt="A cute pet photo.">
-          </div>
-          <div class="col-sm">
-            <img class="img-fluid" src="/pet1.jpg" alt="A cute pet photo.">
-          </div>
-          <div class="col-sm">
-            <img class="img-fluid" src="/pet2.jpg" alt="A cute pet photo.">
-          </div>
-        </div>
-      </div>
-</header>
-<header class="d-flex justify-content-center py-3">
-    <form action="/logout" method="get">
-        <button class="btn btn-primary rounded-pill px-3" type="submit">Log Out</button>
-    </form>
-</header>
+<br>
+<h1>Hello, <%= name %>.</h1>
+<br>
+<div class="row mb-3 text-center">
+    <div class="col-md-4 themed-grid-col"><img class="img-fluid" src="image1.jpg" alt="Image1" /></div>
+    <div class="col-md-4 themed-grid-col"><img class="img-fluid" src="image2.jpg" alt="Image2" /></div>
+    <div class="col-md-4 themed-grid-col"><img class="img-fluid" src="image3.jpg" alt="Image3" /></div>
+</div>
+<!-- <img style="width: 200px; height: 200px;" src="image<%= image %>.jpg" alt="Random image <%= image %>" /> -->
+<br>
+<a href="/logout">Sign Out</a>
 <%- include('templates/footer') %>

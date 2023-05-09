@@ -1,16 +1,25 @@
 <%- include('templates/header') %>
-<header class="d-flex justify-content-center py-3">
-    <h1>Log in below!</h1>
-</header>
-<form action="/log_user_in" method="post">
-    <div class="mb-3">
-        <label for="exampleInputEmail1" class="form-label">Email address</label>
-        <input name="email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+<!-- log in
+<form action='/loggingin' method='post'>
+    <input name='email' type='text' placeholder='email'>
+    <input name='password' type='password' placeholder='password'>
+    <button>Submit</button>
+</form> -->
+
+<div class="col-md-10 mx-auto col-lg-5">
+  <form class="p-4 p-md-5 border rounded-3 bg-light" action='/loggingin' method='post'>
+    <h1 class="display-4 fw-bold lh-1 mb-3">Please sign in</h1>
+    <br><br>
+    <div class="form-floating mb-3">
+      <input name='email' type="email" class="form-control" id="floatingInput" placeholder="name@example.com">
+      <label for="floatingInput">Email address</label>
     </div>
-    <div class="mb-3">
-        <label for="exampleInputPassword1" class="form-label">Password</label>
-        <input name="password" type="password" class="form-control" id="exampleInputPassword1">
+    <div class="form-floating mb-3">
+      <input name="password" type="password" class="form-control" id="floatingPassword" placeholder="Password">
+      <label for="floatingPassword">Password</label>
     </div>
-    <button type="submit" class="btn btn-primary">Log In</button>
-</form>
+    <button class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+    <hr class="my-4">
+  </form>
+</div>
 <%- include('templates/footer') %>

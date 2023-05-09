@@ -1,2 +1,6 @@
-<th scope="row"><%= user.email %></th>
-<td><%= user.type %></td>
+<li class="list-group-item">
+    <%= user.username %>
+    (<%= user.user_type %>)
+    <a class="btn btn-danger" href="/updateuser/admin/<%= user.username %>">Promote to Admin</a>
+    <a class="btn btn-success" href="/updateuser/user/<%= user.username %>">Demote to User</a>
+</li>
